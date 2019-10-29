@@ -3,13 +3,19 @@ package main
 import (
 	"net"
 	"strconv"
+	"sync"
+)
+
+const (
+	forwaderBufferSize = 2048
 )
 
 func startListener(ctx *context) {
 	defer ctx.locker.Done()
-	logger.Print("Starting listener on port: ", ctx.cfg.Port)
-	for _, serv := range ctx.cfg.Servers {
-		logger.Print("... adding server ", serv)
+
+	// check input params first
+	if ctx == nil {
+		reportFailure("Internal error - invalid context")
 	}
 
 	if len(ctx.cfg.Servers) == 0 {
@@ -19,6 +25,13 @@ func startListener(ctx *context) {
 	if ctx.cfg.Port == 0 {
 		reportFailure("Invalid port number")
 	}
+
+	// start launching connection listener
+	logger.Print("Starting listener on port: ", ctx.cfg.Port)
+	for _, serv := range ctx.cfg.Servers {
+		logger.Print("... adding server ", serv)
+	}
+
 	listenAddress := ":" + strconv.Itoa(int(ctx.cfg.Port))
 
 	ln, err := net.Listen("tcp", listenAddress)
@@ -35,17 +48,57 @@ func startListener(ctx *context) {
 
 		go handleConnection(ctx, conn)
 	}
+
+	// TODO add waiting for all forwarders to finish (additional wait group) or just close connections
 }
 
-func handleConnection(ctx *context, conn net.Conn) {
-	defer conn.Close()
-	// debug code
-	logger.Println("Accepted connection: ", conn.RemoteAddr().String())
+// internal only functions below - no input param verification
+func handleConnection(ctx *context, incoming net.Conn) {
+	defer incoming.Close()
+	logger.Println("Accepted connection from: ", incoming.RemoteAddr().String())
+
+	// fetch destination (redirection) address
 	srv, err := ctx.balance.GetServer()
 	if err == nil {
 		logger.Println("... redirecting to: ", srv)
 	} else {
-		logger.Println(".. FAILED TO REDIRECT")
+		logger.Println("... failed to get redirect address - exiting")
+		return
 	}
-	// ---------
+
+	// open new connection for data forwarding
+	redirect, err := net.Dial("tcp", srv)
+	if err != nil {
+		logger.Println("Failed to connect to redirect address - exiting")
+		return
+	}
+	ctx.balance.NotifyOpened(srv)
+	defer ctx.balance.NotifyClosed(srv)
+
+	var locker sync.WaitGroup
+	locker.Add(2)
+
+	// client to server forwarder
+	go forwardRoutine(incoming, redirect, &locker)
+	// server to client forwarder
+	go forwardRoutine(redirect, incoming, &locker)
+
+	// wait for subroutines to finish
+	locker.Wait()
+}
+
+func forwardRoutine(in, out net.Conn, lock *sync.WaitGroup) {
+	defer lock.Done()
+	buffer := make([]byte, forwaderBufferSize)
+	for {
+		n, err := in.Read(buffer)
+		if err != nil {
+			return
+		}
+		if n == 0 {
+			continue
+		}
+		out.Write(buffer[:n])
+	}
+
 }

@@ -53,6 +53,27 @@ func (b *Balancer) GetServer() (string, error) {
 		return "", errors.New("Balancer not initializer")
 	}
 
+	// in future there will be another way of destination selection
 	b.currentID++
 	return b.servers[b.currentID%len(b.servers)], nil
+}
+
+// NotifyOpened informs balanacing algorithm, that connection to particular destination has been opened
+func (b *Balancer) NotifyOpened(address string) error {
+	if !b.initialized {
+		return errors.New("Not initialized")
+	}
+
+	// TODO store information about opened connection
+	return errors.New("Notifying not yet implemented")
+}
+
+// NotifyClosed informs balancing algorithm, that connection to particular destination has been closed
+func (b *Balancer) NotifyClosed(address string) error {
+	if !b.initialized {
+		return errors.New("Not initialized")
+	}
+
+	// TODO delete stored information about opened connection
+	return errors.New("Notifying not yet implemented")
 }
