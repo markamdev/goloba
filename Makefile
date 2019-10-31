@@ -13,11 +13,14 @@ dir:
 goloba: dir
 	@echo BUILD GoLoBa
 	@cd cmd/goloba && $(GO) build -o $(BUILD_DIR)/ ./
-	@cp ./goloba.conf.sample $(BUILD_DIR)/goloba.conf
 
 server: dir
 	@echo BUILD dummyserver
 	@cd cmd/dummyserver && $(GO) build -o $(BUILD_DIR)/ ./
+
+config:
+	@echo COPY config
+	@cp ./goloba.conf.sample $(BUILD_DIR)/goloba.conf
 
 clean:
 	@rm -rf $(BUILD_DIR)
