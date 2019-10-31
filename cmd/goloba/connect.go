@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -55,25 +56,28 @@ func startListener(ctx *context) {
 // internal only functions below - no input param verification
 func handleConnection(ctx *context, incoming net.Conn) {
 	defer incoming.Close()
-	logger.Println("Accepted connection from: ", incoming.RemoteAddr().String())
+
+	// get IP address only (WARNING: it's not working properly for IPv6 connections, even on localhost)
+	source := strings.Split(incoming.RemoteAddr().String(), ":")[0]
+	logger.Println("Accepted connection from: ", source)
 
 	// fetch destination (redirection) address
-	srv, err := ctx.balance.GetServer()
+	dest, err := ctx.balance.GetDestinationForSource(source)
 	if err == nil {
-		logger.Println("... redirecting to: ", srv)
+		logger.Println("... redirecting to: ", dest)
 	} else {
 		logger.Println("... failed to get redirect address - exiting")
 		return
 	}
 
 	// open new connection for data forwarding
-	redirect, err := net.Dial("tcp", srv)
+	redirect, err := net.Dial("tcp", dest)
 	if err != nil {
 		logger.Println("Failed to connect to redirect address - exiting")
 		return
 	}
-	ctx.balance.NotifyOpened(srv)
-	defer ctx.balance.NotifyClosed(srv)
+	ctx.balance.NotifyOpened(source, dest)
+	defer ctx.balance.NotifyClosed(source, dest)
 
 	var locker sync.WaitGroup
 	locker.Add(2)
@@ -93,6 +97,7 @@ func forwardRoutine(in, out net.Conn, lock *sync.WaitGroup) {
 	for {
 		n, err := in.Read(buffer)
 		if err != nil {
+			out.Close()
 			return
 		}
 		if n == 0 {
