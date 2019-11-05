@@ -10,11 +10,10 @@ import (
 	"github.com/markamdev/goloba/pkg/balancer"
 )
 
-const (
-	logFile = "goloba.log"
+var (
+	logFile string = "goloba.log"
+	logger  *log.Logger
 )
-
-var logger *log.Logger
 
 type context struct {
 	locker  *sync.WaitGroup
@@ -25,21 +24,6 @@ type context struct {
 
 func main() {
 	fmt.Println("GoLoBa - simple Go Load Balancer (for TCP traffic)")
-	// prepare logger
-	logFile, err := os.Create(logFile)
-	if err != nil {
-		pe, ok := err.(*os.PathError)
-		if ok {
-			fmt.Println("Failed to init logger output file: ", pe.Unwrap().Error())
-		} else {
-			fmt.Println("Failed to init logger output - Exiting")
-		}
-		os.Exit(1)
-	}
-	defer logFile.Close()
-
-	logger = log.New(logFile, "[GoLoBa] ", log.LstdFlags)
-	logger.Println("Starting GoLoBa ...")
 
 	// separate option for "help" flag
 	var help bool
@@ -47,7 +31,25 @@ func main() {
 	// read options
 	flag.StringVar(&confFile, "f", "goloba.conf", "Path to configuration file")
 	flag.BoolVar(&help, "h", false, "Print help message")
+	flag.StringVar(&logFile, "l", "goloba.log", "Output file for application logs")
 	flag.Parse()
+
+	// open (or create if not exists) output file for logs
+	logFile, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		pe, ok := err.(*os.PathError)
+		if ok {
+			fmt.Println("Failed to init logger output file: ", pe.Unwrap().Error(), " -  Exiting ...")
+		} else {
+			fmt.Println("Failed to init logger output file: ", err.Error(), " - Exiting")
+		}
+		os.Exit(1)
+	}
+	defer logFile.Close()
+
+	// prepare logger instance
+	logger = log.New(logFile, "[GoLoBa] ", log.LstdFlags)
+	logger.Println("Starting GoLoBa ...")
 
 	// if requested print help and exit
 	if help {
