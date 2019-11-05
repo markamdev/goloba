@@ -3,10 +3,15 @@ package balancer
 import (
 	"errors"
 	"log"
+	"sync"
 )
 
 const (
 	defServerCount = 5
+)
+
+var (
+	notifLocker sync.RWMutex
 )
 
 // Configuration stores configuration data for load balancer module
@@ -73,6 +78,10 @@ func (b *Balancer) GetDestinationForSource(source string) (string, error) {
 		return "", errors.New("Balancer not initializer")
 	}
 
+	// lock access to mapping for reading
+	notifLocker.RLock()
+	defer notifLocker.RUnlock()
+
 	// if destination already found - return it
 	if dest, ok := b.mapping[source]; ok {
 		return dest.destination, nil
@@ -92,6 +101,10 @@ func (b *Balancer) NotifyOpened(source, destination string) error {
 	if !b.initialized {
 		return errors.New("Balancer not initialized")
 	}
+
+	// lock access to mapping for reading
+	notifLocker.Lock()
+	defer notifLocker.Unlock()
 
 	// if destination already saved - increment counter
 	if dest, ok := b.mapping[source]; ok {
@@ -114,6 +127,10 @@ func (b *Balancer) NotifyClosed(source, destination string) error {
 	if !b.initialized {
 		return errors.New("Balancer not initialized")
 	}
+
+	// lock access to mapping for reading
+	notifLocker.Lock()
+	defer notifLocker.Unlock()
 
 	dest, ok := b.mapping[source]
 	// if no mapping found - some error occured
