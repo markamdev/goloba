@@ -5,7 +5,7 @@ GO = go
 BUILD_DIR = $(shell pwd)/build
 
 # Default target
-all: goloba server
+all: goloba config server
 
 dir:
 	@mkdir -p $(BUILD_DIR)
