@@ -46,8 +46,12 @@ func startConnectionListener(ctx *context) {
 	for activityFlag {
 		conn, err := ln.Accept()
 		if err != nil {
-			logger.Println("Failed to accept incoming connection: ", err)
-			continue
+			if activityFlag == true {
+				// print error message only if still active ...
+				logger.Println("Failed to accept incoming connection: ", err)
+			}
+			// ... otherwise just exit
+			break
 		}
 
 		// there should be additional waiting flag incr. for each connection
