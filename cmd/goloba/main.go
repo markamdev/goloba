@@ -4,22 +4,25 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"os/signal"
 	"sync"
 
 	"github.com/markamdev/goloba/pkg/balancer"
 )
 
 var (
-	logFile string = "goloba.log"
-	logger  *log.Logger
+	logFile      string = "goloba.log"
+	logger       *log.Logger
+	activityFlag bool
 )
 
 type context struct {
-	locker  *sync.WaitGroup
-	cfg     config
-	active  bool
-	balance *balancer.Balancer
+	locker   *sync.WaitGroup
+	cfg      config
+	balance  *balancer.Balancer
+	listener net.Listener
 }
 
 func main() {
@@ -70,19 +73,39 @@ func main() {
 	// prepare main application context
 	glbCtx := context{locker: new(sync.WaitGroup),
 		cfg:     cfg,
-		active:  true,
 		balance: blnc,
 	}
 
+	// set global activity flag to true
+	activityFlag = true
+
 	// increment locker flag and launch listener
 	glbCtx.locker.Add(1)
-	go startListener(&glbCtx)
+	go startConnectionListener(&glbCtx)
+
+	// launch signal listener without waiting group incrementation
+	go startSignalListener(&glbCtx)
 
 	// wait till all child finished
 	glbCtx.locker.Wait()
+
+	fmt.Println("Connection forwarding finished")
 }
 
 func reportFailure(msg string) {
 	fmt.Println("Fatal error occured - check logfile: ", logFile)
 	logger.Fatalln(msg)
+}
+
+func startSignalListener(ctx *context) {
+	sch := make(chan os.Signal, 1)
+	signal.Notify(sch, os.Interrupt)
+
+	// just wait for signal - no need to save it
+	_ = <-sch
+	logger.Println("Interrupt signal received - preparing to exit")
+	activityFlag = false
+	if ctx.listener != nil {
+		ctx.listener.Close()
+	}
 }

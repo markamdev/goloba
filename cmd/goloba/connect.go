@@ -5,13 +5,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
 	forwaderBufferSize = 2048
 )
 
-func startListener(ctx *context) {
+func startConnectionListener(ctx *context) {
 	defer ctx.locker.Done()
 
 	// check input params first
@@ -39,23 +40,26 @@ func startListener(ctx *context) {
 	if err != nil {
 		reportFailure(err.Error())
 	}
+	// save listener to context
+	ctx.listener = ln
 
-	for ctx.active {
+	for activityFlag {
 		conn, err := ln.Accept()
 		if err != nil {
 			logger.Println("Failed to accept incoming connection: ", err)
 			continue
 		}
 
+		// there should be additional waiting flag incr. for each connection
+		ctx.locker.Add(1)
 		go handleConnection(ctx, conn)
 	}
-
-	// TODO add waiting for all forwarders to finish (additional wait group) or just close connections
 }
 
 // internal only functions below - no input param verification
 func handleConnection(ctx *context, incoming net.Conn) {
-	defer incoming.Close()
+	// remember to decrement main wait group at return
+	defer ctx.locker.Done()
 
 	// get IP address only (WARNING: it's not working properly for IPv6 connections, even on localhost)
 	source := strings.Split(incoming.RemoteAddr().String(), ":")[0]
@@ -67,6 +71,7 @@ func handleConnection(ctx *context, incoming net.Conn) {
 		logger.Println("... redirecting to: ", dest)
 	} else {
 		logger.Println("... failed to get redirect address - exiting")
+		incoming.Close()
 		return
 	}
 
@@ -74,6 +79,7 @@ func handleConnection(ctx *context, incoming net.Conn) {
 	redirect, err := net.Dial("tcp", dest)
 	if err != nil {
 		logger.Println("Failed to connect to redirect address - exiting")
+		incoming.Close()
 		return
 	}
 	ctx.balance.NotifyOpened(source, dest)
@@ -87,16 +93,26 @@ func handleConnection(ctx *context, incoming net.Conn) {
 	// server to client forwarder
 	go forwardRoutine(redirect, incoming, &locker)
 
-	// wait for subroutines to finish
+	// wait till both forwarding routines finish working
 	locker.Wait()
 }
 
-func forwardRoutine(in, out net.Conn, lock *sync.WaitGroup) {
-	defer lock.Done()
+func forwardRoutine(in, out net.Conn, lck *sync.WaitGroup) {
+	// remember to inform connection handler about finished forwarding
+	defer lck.Done()
+
 	buffer := make([]byte, forwaderBufferSize)
-	for {
+	for activityFlag {
+		in.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
 		n, err := in.Read(buffer)
+
 		if err != nil {
+			neterr, ok := err.(net.Error)
+			// reading error occured - close related output socket to completely break connection
+			if ok && neterr.Timeout() {
+				// ignore network error
+				continue
+			}
 			out.Close()
 			return
 		}
@@ -105,5 +121,5 @@ func forwardRoutine(in, out net.Conn, lock *sync.WaitGroup) {
 		}
 		out.Write(buffer[:n])
 	}
-
+	in.Close()
 }
