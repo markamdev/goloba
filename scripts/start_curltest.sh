@@ -22,6 +22,16 @@ then
     exit 1
 fi
 
+# Check if curl installed
+CURL_PATH=`which curl`
+if [ "$?" != "0" ];
+then
+    echo "--"
+    echo "Application 'curl' not found in PATH- exiting"
+    echo "--"
+    exit 1
+fi
+
 G_PORT=$1
 N_TRIALS=$2
 
@@ -29,7 +39,7 @@ for i in `seq 1 1 $N_TRIALS`;
 do
     echo ""
     echo "** Trial $i **"
-    curl -X GET localhost:9000
+    $CURL_PATH -X GET localhost:9000
     sleep 1
 done
 

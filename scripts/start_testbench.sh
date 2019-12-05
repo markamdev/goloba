@@ -52,8 +52,32 @@ else
     exit 1
 fi
 
-echo "[Working directory set to: $WORK_DIR]"
+if [ ! -d $WORK_DIR ];
+then
+    echo "--"
+    echo "Directory $WORK_DIR does not exist"
+    echo "--"
+    exit 1
+fi
+
+echo "** Entering working directory: $WORK_DIR **"
 cd $WORK_DIR
+
+if [[ ! -e ./goloba || ! -e dummyserver ]];
+then
+    echo "--"
+    echo "Missing binaries - did you build GoLoBa and Dummyserver?"
+    echo "--"
+    exit 1
+fi
+
+if [[ ! -x ./goloba || ! -x dummyserver ]];
+then
+    echo "--"
+    echo "GoLoBa or Dummyserver binary not executable. Exiting"
+    echo "--"
+    exit 1
+fi
 
 echo ""
 echo "** Preparing testbench with $N_SERV listeting servers **"
@@ -77,6 +101,14 @@ do
     fi
     echo -n " \"localhost:$port\"" >> $TB_CONF_FILE
     ./dummyserver -p $port -m "TestBench listener at $port" &
+    # Check if dummyserver successfully launched
+    if [ "$?" != "0" ];
+    then
+        echo "--"
+        echo "Failed to launch dummyserver - exiting"
+        echo "--"
+        exit 1
+    fi
     sleep 1
 done
 
