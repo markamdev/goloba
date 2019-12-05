@@ -17,10 +17,12 @@ print_help() {
 }
 
 echo ""
-echo "Script for starting simple testbench for GoLoBa"
+echo "** Script for starting simple testbench for GoLoBa **"
+echo ""
+
 if [ "$#" -ne 3 ]; then
     print_help
-    exit 0
+    exit 1
 fi
 
 # Save commandline params to variables
@@ -50,11 +52,11 @@ else
     exit 1
 fi
 
-echo "Working directory set to: $WORK_DIR"
+echo "[Working directory set to: $WORK_DIR]"
 cd $WORK_DIR
 
 echo ""
-echo "* Preparing testbench with $N_SERV listeting servers ..."
+echo "** Preparing testbench with $N_SERV listeting servers **"
 
 PORTS=`seq --separator " " $B_PORT 1 $(( B_PORT + N_SERV - 1))`
 echo "- ports to be used: $PORTS"
@@ -67,7 +69,7 @@ echo -n "    \"servers\": [" >> $TB_CONF_FILE
 # Launch $N_SERV instances of servers and add necessary config entries
 for port in $PORTS
 do
-    echo "Launching dummyserver listeting on port $port"
+    echo "<> Launching dummyserver listeting on port $port <>"
     # Add comma before next server definition
     if [ "$port" != "$B_PORT" ];
     then
@@ -75,18 +77,18 @@ do
     fi
     echo -n " \"localhost:$port\"" >> $TB_CONF_FILE
     ./dummyserver -p $port -m "TestBench listener at $port" &
-    wait 1
+    sleep 1
 done
 
 echo " ]" >> $TB_CONF_FILE
 echo "}" >> $TB_CONF_FILE
 
 # start GoLoBa with given config
-echo "Lauching GoLoBa load balancer"
+echo "** Launching GoLoBa load balancer (should be listening on port $G_PORT) **"
 ./goloba -f $TB_CONF_FILE -l $TB_LOG_FILE
 
 # Kill all servers if GoLoBa finished
-echo "GoLoBa process stopped - killing all listeners"
+echo "** GoLoBa process stopped - killing all listeners **"
 killall dummyserver
 
 exit 0
