@@ -39,7 +39,7 @@ for i in `seq 1 1 $N_TRIALS`;
 do
     echo ""
     echo "** Trial $i **"
-    $CURL_PATH -X GET localhost:9000
+    $CURL_PATH -X GET localhost:$G_PORT
     sleep 1
 done
 
