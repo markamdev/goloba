@@ -1,32 +1,40 @@
-# GoLoBa - simple Go(lang) Load Balancer
+# GoLoBa - Go(lang) Load Balancer
 
-This project is an implementation of a simple load balancer and dummy HTTP server application (for demo/testing purposes).
+Implementation of a simple load balancer for TCP connections.
 
-# Introduction
+## Introduction
 
-Application is written totaly in Go (Google Golang) with use of standard library in any possible place. It's usability is limited to load balancing demonstration in easiest possible way. The production use of this project is not recommended but feel free to use the code and final binaries in any presentation or academic project you want.
+**goloba** is a simple example of *Layer 4 balancer* working in *proxy mode*. Each connection established with **goloba** process is forwarded to one of configured endpoints. Endpoint selection is made internally based on implemented balancing algorithm.
 
-# Licensing
-Code is published under [MIT License](https://opensource.org/licenses/MIT) as it seems to be the most permissive license. If for some reason you need to have this code published with other license (to be honest: I can't imagine why) please contact author directly.
+Load balancer listening port and list of endpoints (address:port pairs) are provided in configuration file. Please check [Usage](#usage) section for more details.
 
-# Building
+**goloba** is a demonstration of load balancing idea rather than complete, highly efficient solution and so it is not suggested to use it in any production environment.
 
-To build GoLoBa (together with dummyserver test application) just call *make* in main directory. It will create *build* subdir containing output binaries and sample configuration file:
+## Downloading and building
 
-    $ make
-    BUILD GoLoBa
-    COPY config
-    BUILD dummyserver
+GoLoBa project is created as an Go module with Makefile provided so can be downloaded by *git clone* to any location and compiled by simple *make*:
 
-# Usage
+```bash
+git clone github.com/markamdev/goloba
+cd goloba
+make
+```
 
-**TODO**
+Output binaries (**goloba** and **dummyserver** test application) and sample configuration file will be placed inside *build* subdir. **goloba** binary is a load balancer while **dummyserver** is a simple application (based on HTTP server idea) prepared for easy testing ([see Testing](#testing) section).
 
-# Testing
+## Usage
 
-**TODO**
+TODO
 
-# Author / Contact
+## Testing
+
+TODO
+
+## Licensing
+
+Code is published under [MIT License](https://opensource.org/licenses/MIT) as it seems to be the most permissive license. If for some reason you need to have this code published with other license (ex. to reuse the code in your project) please contact [author](#author-/-contact) directly.
+
+## Author / Contact
 
 If you need to contact me feel free to write me an email:  
-[markamdev.84#dontwantSPAM#gmail.com]()
+[markamdev.84#dontwantSPAM#gmail.com](mailto:)
