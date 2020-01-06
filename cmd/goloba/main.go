@@ -12,8 +12,12 @@ import (
 	"github.com/markamdev/goloba/pkg/balancer"
 )
 
+const (
+	defLogFile  = "goloba.log"
+	defConfFile = "goloba.conf"
+)
+
 var (
-	logFile      string = "goloba.log"
 	logger       *log.Logger
 	activityFlag bool
 )
@@ -31,14 +35,21 @@ func main() {
 	// separate option for "help" flag
 	var help bool
 	var confFile string
+	var outputFile string
 	// read options
-	flag.StringVar(&confFile, "f", "goloba.conf", "Path to configuration file")
+	flag.StringVar(&confFile, "f", defConfFile, "Path to configuration file")
 	flag.BoolVar(&help, "h", false, "Print help message")
-	flag.StringVar(&logFile, "l", "goloba.log", "Output file for application logs")
+	flag.StringVar(&outputFile, "l", defLogFile, "Output file for application logs")
 	flag.Parse()
 
+	// if requested print help and exit
+	if help {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+
 	// open (or create if not exists) output file for logs
-	logFile, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	logFile, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		pe, ok := err.(*os.PathError)
 		if ok {
@@ -53,12 +64,6 @@ func main() {
 	// prepare logger instance
 	logger = log.New(logFile, "[GoLoBa] ", log.LstdFlags)
 	logger.Println("Starting GoLoBa ...")
-
-	// if requested print help and exit
-	if help {
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
 
 	// load config from file
 	cfg, err := loadConfigFile(confFile)
@@ -93,7 +98,7 @@ func main() {
 }
 
 func reportFailure(msg string) {
-	fmt.Println("Fatal error occured - check logfile: ", logFile)
+	fmt.Println("Fatal error occured - check logs for details")
 	logger.Fatalln(msg)
 }
 
