@@ -2,7 +2,7 @@ package balancer
 
 import (
 	"errors"
-	"log"
+	"net"
 	"sync"
 )
 
@@ -16,8 +16,8 @@ var (
 
 // Configuration stores configuration data for load balancer module
 type Configuration struct {
+	Port    uint
 	Servers []string
-	Logger  *log.Logger
 }
 
 type destCounter struct {
@@ -27,16 +27,22 @@ type destCounter struct {
 
 // Balancer is a load balancing engine object
 type Balancer struct {
+	// TODO Change this struct int interface + struct with functions
 	initialized bool
+	active      bool
+	port        uint
 	servers     []string
 	currentID   int
 	mapping     map[string]destCounter
+	locker      sync.WaitGroup
+	listener    net.Listener
 }
 
 // New creates new Balancer instance
 func New() *Balancer {
 	var b Balancer
 	b.initialized = false
+	b.active = false
 	b.currentID = 0
 	b.servers = make([]string, defServerCount)
 	b.mapping = make(map[string]destCounter)
@@ -54,21 +60,43 @@ func (b *Balancer) Init(cfg Configuration) error {
 		return errors.New("At least one server needed")
 	}
 
+	if cfg.Port == 0 {
+		return errors.New("Invalid listening port number")
+	}
+
 	b.servers = cfg.Servers
+	b.port = cfg.Port
 	b.initialized = true
 	return nil
 }
 
-// GetDestination returns destination server (address:port) selected by round robin algorithm
-// This function can be used when connection source (client) address is ignored when redirecting traffic
-func (b *Balancer) GetDestination() (string, error) {
+// Start load balancer functionality
+func (b *Balancer) Start() error {
 	if !b.initialized {
-		return "", errors.New("Balancer not initializer")
+		return errors.New("Balancer not initialized - failed to start")
 	}
 
-	// in future there will be another way of destination selection
-	b.currentID++
-	return b.servers[b.currentID%len(b.servers)], nil
+	b.active = true
+	b.startListener()
+
+	return nil
+}
+
+// Stop informs balancer to close all connections
+// use #Wait() to be sure that balancer finished working
+func (b *Balancer) Stop() error {
+	if !b.initialized {
+		return errors.New("Balancer not initialized - cannot stop")
+	}
+	b.active = false
+	b.listener.Close()
+
+	return nil
+}
+
+// Wait stops execution till balancer completely deinitialized
+func (b *Balancer) Wait() {
+	b.locker.Wait()
 }
 
 // GetDestinationForSource returns destination server (address:port) for given source address
@@ -88,65 +116,10 @@ func (b *Balancer) GetDestinationForSource(source string) (string, error) {
 	}
 
 	// temporary use 'round robin' algorithm for destination selection
-	dest, err := b.GetDestination()
+	dest, err := b.getDestination()
 	if err != nil {
 		return "", errors.New("Internal Balancer error")
 	}
 
 	return dest, nil
-}
-
-// NotifyOpened informs balanacing algorithm, that connection to particular destination has been opened
-func (b *Balancer) NotifyOpened(source, destination string) error {
-	if !b.initialized {
-		return errors.New("Balancer not initialized")
-	}
-
-	// lock access to mapping for reading
-	notifLocker.Lock()
-	defer notifLocker.Unlock()
-
-	// if destination already saved - increment counter
-	if dest, ok := b.mapping[source]; ok {
-		if dest.destination != destination {
-			// already saved destination is other than given one
-			return errors.New("Notifying different destination than already saved")
-		}
-		dest.counter++
-		b.mapping[source] = dest
-		return nil
-	}
-
-	// save new mapping information
-	b.mapping[source] = destCounter{counter: 1, destination: destination}
-	return nil
-}
-
-// NotifyClosed informs balancing algorithm, that connection to particular destination has been closed
-func (b *Balancer) NotifyClosed(source, destination string) error {
-	if !b.initialized {
-		return errors.New("Balancer not initialized")
-	}
-
-	// lock access to mapping for reading
-	notifLocker.Lock()
-	defer notifLocker.Unlock()
-
-	dest, ok := b.mapping[source]
-	// if no mapping found - some error occured
-	if !ok {
-		return errors.New("Closing not mapped connection")
-	}
-	if dest.destination != destination {
-		// already saved destination is other than given one
-		return errors.New("Closing connection with destination different than already saved")
-	}
-
-	dest.counter--
-	if dest.counter == 0 {
-		delete(b.mapping, source)
-	} else {
-		b.mapping[source] = dest
-	}
-	return nil
 }

@@ -4,10 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
-	"sync"
 
 	"github.com/markamdev/goloba/pkg/balancer"
 )
@@ -17,17 +15,7 @@ const (
 	defConfFile = "goloba.conf"
 )
 
-var (
-	logger       *log.Logger
-	activityFlag bool
-)
-
-type context struct {
-	locker   *sync.WaitGroup
-	cfg      config
-	balance  *balancer.Balancer
-	listener net.Listener
-}
+var blnc *balancer.Balancer
 
 func main() {
 	fmt.Println("GoLoBa - simple Go Load Balancer (for TCP traffic)")
@@ -61,56 +49,50 @@ func main() {
 	}
 	defer logFile.Close()
 
-	// prepare logger instance
-	logger = log.New(logFile, "[GoLoBa] ", log.LstdFlags)
-	logger.Println("Starting GoLoBa ...")
+	// configure logging utility
+	log.SetOutput(logFile)
+	log.SetPrefix("[GoLoBa] ")
+	log.SetFlags(log.LstdFlags)
+	log.Println("Starting GoLoBa ...")
 
 	// load config from file
 	cfg, err := loadConfigFile(confFile)
 	if err != nil {
-		reportFailure(err.Error())
+		log.Fatalln("Failed to load config: ", err.Error())
 	}
 
 	// prepare balancer
-	blnc := balancer.New()
-	blnc.Init(balancer.Configuration{Servers: cfg.Servers, Logger: logger})
-
-	// prepare main application context
-	glbCtx := context{locker: new(sync.WaitGroup),
-		cfg:     cfg,
-		balance: blnc,
+	blnc = balancer.New()
+	err = blnc.Init(balancer.Configuration{Port: cfg.Port, Servers: cfg.Servers})
+	if err != nil {
+		log.Fatalln("Failed to init balancer: ", err.Error())
 	}
 
-	// set global activity flag to true
-	activityFlag = true
-
-	// increment locker flag and launch listener
-	glbCtx.locker.Add(1)
-	go startConnectionListener(&glbCtx)
+	// start balancer
+	err = blnc.Start()
+	if err != nil {
+		log.Fatalln("Failed to start balancer: ", err.Error())
+	}
 
 	// launch signal listener without waiting group incrementation
-	go startSignalListener(&glbCtx)
+	go startSignalListener()
 
-	// wait till all child finished
-	glbCtx.locker.Wait()
+	// wait till balancer finish working
+	blnc.Wait()
 
-	fmt.Println("Connection forwarding finished")
+	log.Println("Closing GoLoBa")
 }
 
 func reportFailure(msg string) {
-	fmt.Println("Fatal error occured - check logs for details")
-	logger.Fatalln(msg)
+	log.Fatalln(msg)
 }
 
-func startSignalListener(ctx *context) {
+func startSignalListener() {
 	sch := make(chan os.Signal, 1)
 	signal.Notify(sch, os.Interrupt)
 
 	// just wait for signal - no need to save it
 	_ = <-sch
-	logger.Println("Interrupt signal received - preparing to exit")
-	activityFlag = false
-	if ctx.listener != nil {
-		ctx.listener.Close()
-	}
+	log.Println("Interrupt signal received - preparing to exit")
+	blnc.Stop()
 }
