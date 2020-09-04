@@ -59,7 +59,7 @@ func loadEnvs() (config, error) {
 		result.Port = uint(val)
 	}
 	// ex. GOLOBA_TARGETS="127.0.0.1:9000;10.0.0.1:9000"
-	envTargets := os.Getenv(envNameTargets)
+	envTargets := strings.Trim(os.Getenv(envNameTargets), "\"' \t")
 	if len(envTargets) > 0 {
 		parts := strings.Split(envTargets, ";")
 		result.Servers = parts
