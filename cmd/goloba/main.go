@@ -56,7 +56,7 @@ func main() {
 	log.Println("Starting GoLoBa ...")
 
 	// load config from file
-	cfg, err := loadConfigFile(confFile)
+	cfg, err := loadConfig(confFile)
 	if err != nil {
 		log.Fatalln("Failed to load config: ", err.Error())
 	}
