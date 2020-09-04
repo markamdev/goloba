@@ -1,69 +1,16 @@
 #!/bin/bash
 
-TB_CONF_FILE="testbench.conf"
-TB_LOG_FILE="test_$(date +"%Y%m%d_%H%M").log"
+BUILD_DIR=./build
+GOLOBA_BIN=$BUILD_DIR/goloba
+DUMMY_BIN=$BUILD_DIR/dummyserver
+TB_CONF_FILE=$BUILD_DIR/testbench.conf
+TB_LOG_FILE=$BUILD_DIR/"test_$(date +"%Y%m%d_%H%M").log"
 
-print_help() {
-    echo ""
-    echo "Usage:"
-    MYNAME=`basename $0`
-    echo "$MYNAME <goloba_port> <base_test_port> <number_of_test_servers>"
-    echo ""
-    echo "Example:"
-    echo "\$ $MYNAME 7000 8000 3"
-    echo ""
-    echo "- launches 3 dummyserver instances listening on ports 8000, 8001 and 8002"
-    echo "- prepares config for GoLoBa with 7000 as listenign port"
-}
+echo "Testing scenario"
+echo "- 4 dummyserver instances launched, listening on ports 8001, 8002, 8003 and 8004"
+echo "- GoLoBa starts listening on port 8000, redirects traffic to ports above"
 
-echo ""
-echo "** Script for starting simple testbench for GoLoBa **"
-echo ""
-
-if [ "$#" -ne 3 ]; then
-    print_help
-    exit 1
-fi
-
-# Save commandline params to variables
-G_PORT=$1
-B_PORT=$2
-N_SERV=$3
-
-# Check where script has been called from 
-# and where are goloba and dummy server binaries
-CUR_DIR="$PWD"
-SUB_DIR=`basename $CUR_DIR`
-WORK_DIR=""
-if [ "$SUB_DIR" == "scripts" ];
-then
-    WORK_DIR="$CUR_DIR/../build"
-elif [ "$SUB_DIR" == "build" ];
-then
-    WORK_DIR="./"
-elif [ "$SUB_DIR" == "goloba" ];
-then
-    WORK_DIR="$CUR_DIR/build"
-else
-    echo "Where am I? Please call this script from:"
-    echo "- main goloba repo directory"
-    echo "- ./scripts subdir"
-    echo "- ./build subdir"
-    exit 1
-fi
-
-if [ ! -d $WORK_DIR ];
-then
-    echo "--"
-    echo "Directory $WORK_DIR does not exist"
-    echo "--"
-    exit 1
-fi
-
-echo "** Entering working directory: $WORK_DIR **"
-cd $WORK_DIR
-
-if [[ ! -e ./goloba || ! -e dummyserver ]];
+if [[ ! -e $GOLOBA_BIN || ! -e $DUMMY_BIN ]];
 then
     echo "--"
     echo "Missing binaries - did you build GoLoBa and Dummyserver?"
@@ -71,7 +18,7 @@ then
     exit 1
 fi
 
-if [[ ! -x ./goloba || ! -x dummyserver ]];
+if [[ ! -x $GOLOBA_BIN || ! -x $DUMMY_BIN ]];
 then
     echo "--"
     echo "GoLoBa or Dummyserver binary not executable. Exiting"
@@ -79,48 +26,37 @@ then
     exit 1
 fi
 
-echo ""
-echo "** Preparing testbench with $N_SERV listeting servers **"
-
-PORTS=`seq --separator " " $B_PORT 1 $(( B_PORT + N_SERV - 1))`
-echo "- ports to be used: $PORTS"
-
-# Prepare config file beginning
-echo "{" > $TB_CONF_FILE
-echo "    \"port\":$G_PORT," >> $TB_CONF_FILE
-echo -n "    \"servers\": [" >> $TB_CONF_FILE
-
-# Launch $N_SERV instances of servers and add necessary config entries
-for port in $PORTS
-do
-    echo "<> Launching dummyserver listeting on port $port <>"
-    # Add comma before next server definition
-    if [ "$port" != "$B_PORT" ];
-    then
-        echo "," >> $TB_CONF_FILE
-    fi
-    echo -n " \"localhost:$port\"" >> $TB_CONF_FILE
-    ./dummyserver -p $port -m "TestBench listener at $port" &
-    # Check if dummyserver successfully launched
-    if [ "$?" != "0" ];
-    then
-        echo "--"
-        echo "Failed to launch dummyserver - exiting"
-        echo "--"
-        exit 1
-    fi
-    sleep 1
-done
-
-echo " ]" >> $TB_CONF_FILE
-echo "}" >> $TB_CONF_FILE
+CONF_DATA='{
+    "port":8000,
+    "servers": [ "localhost:8001", "localhost:8002","localhost:8003","localhost:8004"]
+}'
+echo $CONF_DATA > $TB_CONF_FILE
 
 # start GoLoBa with given config
-echo "** Launching GoLoBa load balancer (should be listening on port $G_PORT) **"
-./goloba -f $TB_CONF_FILE -l $TB_LOG_FILE
+echo "Launching GoLoBa load balancer listening on port 8000"
+$GOLOBA_BIN -f $TB_CONF_FILE -l $TB_LOG_FILE &
+GLB_PID=$!
+echo "... launched as process $GLB_PID"
 
-# Kill all servers if GoLoBa finished
-echo "** GoLoBa process stopped - killing all listeners **"
+# start listening dummy servers
+echo "Launching Dummyserver instances listening on ports 8001..8004"
+./build/dummyserver -p 8001 -m "Testbench server 1" &
+./build/dummyserver -p 8002 -m "Testbench server 2" &
+./build/dummyserver -p 8003 -m "Testbench server 3" &
+./build/dummyserver -p 8004 -m "Testbench server 4" &
+
+# launch CURL Testing
+echo "Launching simple CURL-based testing"
+./scripts/start_curltest.sh 8000 10
+if [ $? -ne 0 ];
+then
+    echo "!! TESTING FAILED !!"
+    exit 1
+fi
+
+# kill GoLoBa and then server
+echo "Stopping GoLoBa and servers"
+kill $GLB_PID
 killall dummyserver
 
 exit 0

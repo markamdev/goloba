@@ -26,3 +26,7 @@ config:
 clean:
 	@echo -- CLEAN --
 	@rm -rf $(BUILD_DIR)
+
+test: goloba server
+	@echo -- TESTING --
+	@./scripts/start_testbench.sh

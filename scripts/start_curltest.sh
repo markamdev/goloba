@@ -12,15 +12,16 @@ print_help() {
     echo "-  call 'curl -X GET localhost:8000' 3 times in a loop with 1s sleep in between"
 }
 
-echo ""
-echo "Script for checking connection with GoLoBa using HTTP GET"
-echo ""
-
 if [ "$#" -ne 2 ];
 then
     print_help
     exit 1
 fi
+
+G_PORT=$1
+N_TRIALS=$2
+
+echo "Checking connection with server on port $G_PORT using HTTP GET"
 
 # Check if curl installed
 CURL_PATH=`which curl`
@@ -31,9 +32,6 @@ then
     echo "--"
     exit 1
 fi
-
-G_PORT=$1
-N_TRIALS=$2
 
 for i in `seq 1 1 $N_TRIALS`;
 do
