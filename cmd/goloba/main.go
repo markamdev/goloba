@@ -13,6 +13,7 @@ import (
 const (
 	defLogFile  = "goloba.log"
 	defConfFile = "goloba.conf"
+	stdOutPath  = "/dev/stdout"
 )
 
 var blnc *balancer.Balancer
@@ -22,13 +23,19 @@ func main() {
 
 	// separate option for "help" flag
 	var help bool
-	var confFile string
-	var outputFile string
+	var confFileName string
+	var logFileName string
+	var logStdOut bool
 	// read options
-	flag.StringVar(&confFile, "f", defConfFile, "Path to configuration file")
+	flag.StringVar(&confFileName, "f", defConfFile, "Path to configuration file")
 	flag.BoolVar(&help, "h", false, "Print help message")
-	flag.StringVar(&outputFile, "l", defLogFile, "Output file for application logs")
+	flag.StringVar(&logFileName, "l", defLogFile, "Output file for application logs")
+	flag.BoolVar(&logStdOut, "log-stdout", false, "Print logs on standard output instead of file")
 	flag.Parse()
+
+	if logStdOut {
+		logFileName = stdOutPath
+	}
 
 	// if requested print help and exit
 	if help {
@@ -37,7 +44,7 @@ func main() {
 	}
 
 	// open (or create if not exists) output file for logs
-	logFile, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	logFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		pe, ok := err.(*os.PathError)
 		if ok {
@@ -56,7 +63,7 @@ func main() {
 	log.Println("Starting GoLoBa ...")
 
 	// load config from file
-	cfg, err := loadConfig(confFile)
+	cfg, err := loadConfig(confFileName)
 	if err != nil {
 		log.Fatalln("Failed to load config: ", err.Error())
 	}

@@ -59,15 +59,16 @@ func (b *Balancer) handleConnection(incoming net.Conn) {
 	if err == nil {
 		log.Println("... redirecting to: ", dest)
 	} else {
-		log.Println("... failed to get redirect address - exiting")
+		log.Println("... failed to get redirect address - exiting with error:", err)
 		incoming.Close()
 		return
 	}
 
 	// open new connection for data forwarding
-	redirect, err := net.Dial("tcp", dest)
+	tempdialer := net.Dialer{}
+	redirect, err := tempdialer.Dial("tcp", dest)
 	if err != nil {
-		log.Println("Failed to connect to redirect address - exiting")
+		log.Println("Failed to connect to redirect address (", dest, ") - exiting with error:", err)
 		incoming.Close()
 		return
 	}
