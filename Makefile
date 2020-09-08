@@ -4,18 +4,21 @@ GO = go
 # Params
 BUILD_DIR = $(shell pwd)/build
 
-# Default target
-all: goloba config server
+# Go compiler should always check if it's necessary to re-buld binary
+.PHONY: goloba dummyserver
 
-dir:
-	@echo -- DIR --
+# Default target
+all: goloba config dummyserver
+
+$(BUILD_DIR):
+	@echo -- BUILD DIR --
 	@mkdir -p $(BUILD_DIR)
 
-goloba: dir
+goloba: $(BUILD_DIR)
 	@echo -- GOLOBA --
 	@cd cmd/goloba && $(GO) build -o $(BUILD_DIR)/ ./
 
-server: dir
+dummyserver: $(BUILD_DIR)
 	@echo -- DUMMYSERVER --
 	@cd cmd/dummyserver && $(GO) build -o $(BUILD_DIR)/ ./
 
@@ -27,15 +30,11 @@ clean:
 	@echo -- CLEAN --
 	@rm -rf $(BUILD_DIR)
 
-test: goloba server
+test: goloba dummyserver
 	@echo -- TESTING --
 	@./scripts/start_testbench.sh
 
 docker:
 	@echo -- DOCKER --
-	@docker build -t markamdev/goloba -f Dockerfile.balancer .
-	@docker build -t markamdev/dummyserver -f Dockerfile.server .
-
-compose:
-	@echo -- DOCKER COMPOSE TESTBENCH --
-	@docker-compose up -d
+	@docker build -t markamdev/goloba -f Dockerfile.goloba .
+	@docker build -t markamdev/dummyserver -f Dockerfile.dummyserver .

@@ -5,7 +5,7 @@ services:
         image: markamdev/goloba
         build:
             context: .
-            dockerfile: Dockerfile.balancer
+            dockerfile: Dockerfile.goloba
         environment:
             - GOLOBA_PORT=8000
             - GOLOBA_TARGETS="dummy.server1:8080;dummy.server2:8080"
@@ -22,7 +22,7 @@ services:
         image: markamdev/dummyserver
         build:
             context: .
-            dockerfile: Dockerfile.server
+            dockerfile: Dockerfile.dummyserver
         networks:
             - glbtesting
 
