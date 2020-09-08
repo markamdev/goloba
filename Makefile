@@ -30,3 +30,12 @@ clean:
 test: goloba server
 	@echo -- TESTING --
 	@./scripts/start_testbench.sh
+
+docker:
+	@echo -- DOCKER --
+	@docker build -t markamdev/goloba -f Dockerfile.balancer .
+	@docker build -t markamdev/dummyserver -f Dockerfile.server .
+
+compose:
+	@echo -- DOCKER COMPOSE TESTBENCH --
+	@docker-compose up -d

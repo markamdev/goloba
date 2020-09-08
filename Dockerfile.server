@@ -1,0 +1,12 @@
+FROM golang:1.14 AS builder
+WORKDIR /temp
+COPY . .
+RUN make server
+
+FROM ubuntu:20.04
+WORKDIR /usr/bin
+COPY --from=builder /temp/build/dummyserver .
+
+EXPOSE 9001
+
+CMD [ "/usr/bin/dummyserver" ]
