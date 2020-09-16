@@ -3,10 +3,10 @@ FROM golang:1.14 AS builder
 WORKDIR /temp
 COPY . .
 
-RUN make goloba
+RUN GOOS=linux GOARCH=amd64 make goloba
 
 # --- create image
-FROM ubuntu:20.04
+FROM amd64/ubuntu:20.04
 
 WORKDIR /usr/bin
 COPY --from=builder /temp/build/goloba .
