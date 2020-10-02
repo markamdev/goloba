@@ -5,11 +5,13 @@ COPY . .
 RUN make dummyserver
 
 # --- create image
-FROM ubuntu:20.04
+FROM arm32v7/ubuntu:20.04
 
 WORKDIR /usr/bin
 COPY --from=builder /temp/build/dummyserver .
 
 EXPOSE 9001
+
+ENV DUMMY_PORT=9001
 
 CMD [ "/usr/bin/dummyserver" ]

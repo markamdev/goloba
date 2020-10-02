@@ -42,13 +42,19 @@ docker:
 # Targets for publishing images to Docker Hub
 
 .publish_goloba:
-	@echo -- DOCKERHUB PUBLISHING : GOLOBA --
+	$(eval G_VER := $(shell cat dockerhub/goloba.VERSION | head -n 1))
+	@echo -- DOCKERHUB PUBLISHING : GOLOBA v $(G_VER) --
 	@docker build -f dockerhub/Dockerfile.goloba-arm7 -t markamdev/goloba:arm7 --platform linux/arm/v7 .
 	@docker image push markamdev/goloba:arm7
 	@docker build -f dockerhub/Dockerfile.goloba-arm8 -t markamdev/goloba:arm8 --platform linux/arm/v8 .
 	@docker image push markamdev/goloba:arm8
 	@docker build -f dockerhub/Dockerfile.goloba-amd64 -t markamdev/goloba:amd64 --platform linux/amd64 .
 	@docker image push markamdev/goloba:amd64
+	@docker manifest create markamdev/goloba:$(G_VER) \
+		--amend markamdev/goloba:arm7 \
+		--amend markamdev/goloba:arm8 \
+		--amend markamdev/goloba:amd64
+	@docker manifest push markamdev/goloba:$(G_VER)
 	@docker manifest create markamdev/goloba:latest \
 		--amend markamdev/goloba:arm7 \
 		--amend markamdev/goloba:arm8 \
@@ -56,4 +62,21 @@ docker:
 	@docker manifest push markamdev/goloba:latest
 
 .publish_dummyserver:
-	@echo -- DOCKERHUB PUBLISHING : DUMMYSERVER --
+	$(eval DS_VER := $(shell cat dockerhub/dummyserver.VERSION | head -n 1))
+	@echo -- DOCKERHUB PUBLISHING : DUMMYSERVER v $(DS_VER) --
+	@docker build -f dockerhub/Dockerfile.dummyserver-arm7 -t markamdev/dummyserver:arm7 --platform linux/arm/v7 .
+	@docker image push markamdev/dummyserver:arm7
+	@docker build -f dockerhub/Dockerfile.dummyserver-arm8 -t markamdev/dummyserver:arm8 --platform linux/arm/v8 .
+	@docker image push markamdev/dummyserver:arm8
+	@docker build -f dockerhub/Dockerfile.dummyserver-amd64 -t markamdev/dummyserver:amd64 --platform linux/amd64 .
+	@docker image push markamdev/dummyserver:amd64
+	@docker manifest create markamdev/dummyserver:$(DS_VER) \
+		--amend markamdev/dummyserver:arm7 \
+		--amend markamdev/dummyserver:arm8 \
+		--amend markamdev/dummyserver:amd64
+	@docker manifest push markamdev/dummyserver:$(DS_VER)
+	@docker manifest create markamdev/dummyserver:latest \
+		--amend markamdev/dummyserver:arm7 \
+		--amend markamdev/dummyserver:arm8 \
+		--amend markamdev/dummyserver:amd64
+	@docker manifest push markamdev/dummyserver:latest
