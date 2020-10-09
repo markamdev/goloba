@@ -24,48 +24,19 @@ Output binaries (**goloba** and **dummyserver** test application) and sample con
 
 ## Usage
 
-### goloba params and usage
+### goloba params and environment variables
 
-### dummyserver params and usage
+### goloba.conf example
 
-### Example of goloba config
+### dummyserver params  and environment variables
+
+## Docker container and docker-compose testbench
+
+To Be Done...
 
 ## Testing
 
-Project provides two bash scripts that simplifies quick load balancer testing: *start_testbench.sh* and *start_curltest.sh*.
-
-*start_testbench.sh* launches requested number of HTTP servers (**dummyserver** application), prepares *goloba.conf* file and launches **goloba** itself. When testbench is ready (there's no error messages and scripts "freezes" on launched goloba instance) user should call *start_curltest.sh* in separate terminal with appropriate parameters. This second script performs multiple HTTP GET requests (*curl* application needed for this) and prints received web page source on screen. As each dummyserver instance is launched with different message string successive GETs should contain different text.
-
-Test scripts are prepared to be launched on one machine only so testcase does not verify proper forwarding to remote machines.
-
-### start_testbench.sh params and usage
-
-This script gets 3 command line params:
-
-* Listening port for balancer
-* Listening port of first HTTP server (first dummyserver instance)
-* Number of servers to be launched
-
-To launch balancer listening on port 9000 and 4 servers where first is listening on port 9500 (so rest of servers is listening on ports 9501, 9502 and 9503) user should call:
-
-```bash
-./scripts/start_testbench.sh 9000 9500 4
-```
-
-### start_curltest.sh params and usage
-
-This script gets 2 command line params:
-
-* Listetning port of balancer
-* Number of get requests to be executed
-
-To test environment prepared by *start_testbench.sh* in example above with 5 GET requests user should call:
-
-```bash
-./scripts/start_curltest.sh 9000 5
-```
-
-As there are only 4 servers launched, result of 1st abd 5th GET request should return same content.
+To Be Done...
 
 ## Licensing
 
@@ -73,5 +44,5 @@ Code is published under [MIT License](https://opensource.org/licenses/MIT) as it
 
 ## Author / Contact
 
-If you need to contact me feel free to write me an email:  
+If you need to contact me feel free to write me an email:
 [markamdev.84#dontwantSPAM#gmail.com](mailto:)
