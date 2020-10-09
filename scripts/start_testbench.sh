@@ -72,8 +72,8 @@ GLB_PID=$!
 echo "... launched as process $GLB_PID"
 
 echo "Launching Dummyserver instances listening on ports 9001..9002"
-./build/dummyserver -p 9001 -m "Testbench server at 9001" &
-./build/dummyserver -p 9002 -m "Testbench server at 9002" &
+DUMMY_PORT=9001 ./build/dummyserver -m "Testbench server at 9001" &
+DUMMY_PORT=9002 ./build/dummyserver -m "Testbench server at 9002" &
 
 echo "Launching simple CURL-based testing"
 ./scripts/start_curltest.sh 9000 4

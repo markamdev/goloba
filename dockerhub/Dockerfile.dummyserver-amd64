@@ -13,5 +13,6 @@ COPY --from=builder /temp/build/dummyserver .
 EXPOSE 9001
 
 ENV DUMMY_PORT=9001
+ENV DUMMY_MESSAGE="DummyServer in Docker"
 
 CMD [ "/usr/bin/dummyserver" ]
