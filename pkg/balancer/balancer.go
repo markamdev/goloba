@@ -1,6 +1,7 @@
 package balancer
 
 import (
+	"context"
 	"errors"
 	"net"
 	"sync"
@@ -36,6 +37,8 @@ type Balancer struct {
 	mapping     map[string]destCounter
 	locker      sync.WaitGroup
 	listener    net.Listener
+	ctx         context.Context
+	ctxCancel   context.CancelFunc
 }
 
 // New creates new Balancer instance
@@ -46,6 +49,7 @@ func New() *Balancer {
 	b.currentID = 0
 	b.servers = make([]string, defServerCount)
 	b.mapping = make(map[string]destCounter)
+	b.ctx, b.ctxCancel = context.WithCancel(context.Background())
 	return &b
 }
 
@@ -76,8 +80,10 @@ func (b *Balancer) Start() error {
 		return errors.New("Balancer not initialized - failed to start")
 	}
 
+	// TODO Remove flag below and move completely to context based control
 	b.active = true
-	b.startListener()
+	b.locker.Add(1)
+	go b.startListener()
 
 	return nil
 }
@@ -88,8 +94,11 @@ func (b *Balancer) Stop() error {
 	if !b.initialized {
 		return errors.New("Balancer not initialized - cannot stop")
 	}
+	// TODO remove this flag and switch completely to Context
 	b.active = false
-	b.listener.Close()
+
+	// cancel all derived contexts
+	b.ctxCancel()
 
 	return nil
 }

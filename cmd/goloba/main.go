@@ -95,6 +95,7 @@ func reportFailure(msg string) {
 }
 
 func startSignalListener() {
+	log.Println("Starting signal listener")
 	sch := make(chan os.Signal, 1)
 	signal.Notify(sch, os.Interrupt)
 

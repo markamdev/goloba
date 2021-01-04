@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -15,11 +14,10 @@ const (
 )
 
 func (b *Balancer) startListener() {
-	b.locker.Add(1)
 	defer b.locker.Done()
 
 	// start launching connection listener
-	log.Print("Starting listener on port: ", b.port)
+	log.Print("Starting connection listener on port: ", b.port)
 	for _, serv := range b.servers {
 		log.Println("... adding server: ", serv)
 	}
@@ -32,19 +30,32 @@ func (b *Balancer) startListener() {
 	}
 	// save listener to context
 	b.listener = ln
+	acceptChan := make(chan net.Conn, 1)
+	cancelChan := b.ctx.Done()
 
-	for b.active {
-		conn, err := ln.Accept()
-		if err != nil {
-			if b.active == true {
-				// print error message only if still active ...
-				log.Println("Failed to accept incoming connection: ", err)
+	// TODO consider incrementing WaitGroup here
+	go func(chn chan net.Conn, lstn net.Listener) {
+		for {
+			cn, err := lstn.Accept()
+			if err == nil {
+				chn <- cn
+			} else {
+				log.Println("Connection accepting error")
+				return
 			}
-			// ... otherwise just exit
-			break
 		}
+	}(acceptChan, b.listener)
 
-		b.handleConnection(conn)
+	for {
+		select {
+		case conn := <-acceptChan:
+			log.Println("Connection accepted")
+			b.handleConnection(conn)
+		case <-cancelChan:
+			log.Println("Cancellation received")
+			b.listener.Close()
+			return
+		}
 	}
 }
 
@@ -73,8 +84,7 @@ func (b *Balancer) handleConnection(incoming net.Conn) {
 		return
 	}
 
-	var locker sync.WaitGroup
-	locker.Add(2)
+	b.locker.Add(2)
 
 	// client to server forwarder
 	go b.forwardRoutine(incoming, redirect)
@@ -88,7 +98,6 @@ func (b *Balancer) forwardRoutine(in, out net.Conn) {
 	defer b.notifyClosed(in.RemoteAddr().String(), out.RemoteAddr().String())
 
 	// properly handle adding/removing routine to the list
-	b.locker.Add(1)
 	defer b.locker.Done()
 
 	buffer := make([]byte, forwaderBufferSize)
