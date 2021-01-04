@@ -80,7 +80,7 @@ There's also simple testbench prepared to be launched in Docker Compose tool. Te
 
 Diagram below presents testbench configuration:
 
-(ToBeDone)
+![testbench diagram](./data/goloba-docker-compose-1.png "Testbench in Docker diagram")
 
 ## Testing
 
