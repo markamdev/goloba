@@ -11,15 +11,16 @@ import (
 )
 
 const (
-	defLogFile  = "goloba.log"
-	defConfFile = "goloba.conf"
-	stdOutPath  = "/dev/stdout"
+	defLogFile     = "goloba.log"
+	defConfFile    = "goloba.conf"
+	stdOutPath     = "/dev/stdout"
+	currentVersion = "0.5"
 )
 
 var blnc *balancer.Balancer
 
 func main() {
-	fmt.Println("GoLoBa - simple Go Load Balancer (for TCP traffic)")
+	fmt.Println("GoLoBa - simple Go Load Balancer (for TCP traffic) v.", currentVersion)
 
 	// separate option for "help" flag
 	var help bool
