@@ -30,7 +30,6 @@ type destCounter struct {
 type Balancer struct {
 	// TODO Change this struct int interface + struct with functions
 	initialized bool
-	active      bool
 	port        uint
 	servers     []string
 	currentID   int
@@ -45,7 +44,6 @@ type Balancer struct {
 func New() *Balancer {
 	var b Balancer
 	b.initialized = false
-	b.active = false
 	b.currentID = 0
 	b.servers = make([]string, defServerCount)
 	b.mapping = make(map[string]destCounter)
@@ -81,7 +79,6 @@ func (b *Balancer) Start() error {
 	}
 
 	// TODO Remove flag below and move completely to context based control
-	b.active = true
 	b.locker.Add(1)
 	go b.startListener()
 
@@ -94,8 +91,6 @@ func (b *Balancer) Stop() error {
 	if !b.initialized {
 		return errors.New("Balancer not initialized - cannot stop")
 	}
-	// TODO remove this flag and switch completely to Context
-	b.active = false
 
 	// cancel all derived contexts
 	b.ctxCancel()

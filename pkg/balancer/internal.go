@@ -1,6 +1,7 @@
 package balancer
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net"
@@ -84,24 +85,26 @@ func (b *Balancer) handleConnection(incoming net.Conn) {
 		return
 	}
 
+	// two new goroutines will be created
 	b.locker.Add(2)
 
 	// client to server forwarder
-	go b.forwardRoutine(incoming, redirect)
+	go b.forwardRoutine(b.ctx, incoming, redirect)
 	// server to client forwarder
-	go b.forwardRoutine(redirect, incoming)
+	go b.forwardRoutine(b.ctx, redirect, incoming)
 }
 
-func (b *Balancer) forwardRoutine(in, out net.Conn) {
+func (b *Balancer) forwardRoutine(ctx context.Context, in, out net.Conn) {
 
+	// tracking of opened connections
 	b.notifyOpened(in.RemoteAddr().String(), out.RemoteAddr().String())
 	defer b.notifyClosed(in.RemoteAddr().String(), out.RemoteAddr().String())
-
-	// properly handle adding/removing routine to the list
+	// tracking of working goroutines
 	defer b.locker.Done()
 
 	buffer := make([]byte, forwaderBufferSize)
-	for b.active {
+	// repeat as long as no error from context (so context not closed/canceled)
+	for ctx.Err() == nil {
 		in.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
 		n, err := in.Read(buffer)
 
@@ -120,6 +123,7 @@ func (b *Balancer) forwardRoutine(in, out net.Conn) {
 		}
 		out.Write(buffer[:n])
 	}
+	log.Println("Forwarding routine closed by context")
 	in.Close()
 }
 
