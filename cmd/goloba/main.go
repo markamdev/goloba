@@ -65,20 +65,20 @@ func main() {
 	// load config from file
 	cfg, err := loadConfig(confFileName)
 	if err != nil {
-		log.Fatalln("Failed to load config: ", err.Error())
+		fatalAtStart("Failed to load config: ", err)
 	}
 
 	// prepare balancer
 	blnc = balancer.New()
 	err = blnc.Init(balancer.Configuration{Port: cfg.Port, Servers: cfg.Servers})
 	if err != nil {
-		log.Fatalln("Failed to init balancer: ", err.Error())
+		fatalAtStart("Failed to init balancer: ", err)
 	}
 
 	// start balancer
 	err = blnc.Start()
 	if err != nil {
-		log.Fatalln("Failed to start balancer: ", err.Error())
+		fatalAtStart("Failed to start balancer: ", err)
 	}
 
 	// launch signal listener without waiting group incrementation
@@ -90,8 +90,15 @@ func main() {
 	log.Println("Closing GoLoBa")
 }
 
-func reportFailure(msg string) {
-	log.Fatalln(msg)
+func fatalAtStart(msg string, er error) {
+	// leave message about fatal error on console
+	fmt.Println("Fatal error occured - see logs for details")
+	// log error and exit
+	if er != nil {
+		log.Fatalln(msg, er.Error())
+	} else {
+		log.Fatalln(msg)
+	}
 }
 
 func startSignalListener() {
