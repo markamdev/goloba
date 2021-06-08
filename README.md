@@ -28,23 +28,15 @@ Output binaries (**goloba** and **dummyserver**) and sample configuration file w
 
 ### goloba params and environment variables
 
-When launching **goloba** following commandline params can be specified:
+When launching **goloba** following commandline params and system environment variables can be specified:
 
-| Flag | Param | Description |
-|------|-------|-------------|
-| -f | \<filename\> | Path to configuration file. *goloba.conf* used by default |
-| -h |  | Print help message |
-| -l | \<filename\> | Output file for application logs. *goloba.log* used by default |
-| -log-stdout | | Print logs to standard ouput instead of file. Option introduced for launching in Docker container |
-
-**goloba** can be configured also using system environment variables. It's usefull when launching application inside Docker container.
-
-| Variable name | Content |
-|---------------|---------|
-| GOLOBA_PORT | Integer defining listening port number |
-| GOLOBA_TARGETS | String conaining list of *balanced* server. Each server given as *host:port*, servers separated by semicolon (ex. "dummy1:9001;dummy2:9002") |
+| Flag | Env var | Param | Description |
+|------|---------|-------|-------------|
+| TODO | TODO | TODO | TODO |
 
 ### goloba.conf example
+
+**! OBSOLETE !**
 
 Currently **goloba** accepts configuration file in *json* format. Sample file content is shown below:
 
@@ -65,10 +57,11 @@ Currently **goloba** accepts configuration file in *json* format. Sample file co
 
 Accepted command line parameters and related environment variable:
 
-| Flag | Param | Evn. var |Description |
-|------|-------|----------|------------|
-| p| \<port\> | DUMMY_PORT | Listening port number (9000 by default) |
-| m| \<message\> | DUMMY_MESSAGE | Message sent to client in HTML content |
+
+| Flag | Env var | Param | Description |
+|------|---------|-------|-------------|
+| port | PORT | \<port\> | Listening port number (9000 by default) |
+| message | MESSAGE | \<message\> | Message sent to client in HTML content |
 
 ## Docker container and docker-compose testbench
 

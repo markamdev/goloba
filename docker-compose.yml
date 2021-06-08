@@ -7,8 +7,8 @@ services:
             context: .
             dockerfile: Dockerfile.goloba
         environment:
-            - GOLOBA_PORT=8000
-            - GOLOBA_TARGETS="dummy.server1:9001;dummy.server2:9002"
+            - PORT=8000
+            - TARGETS="dummy.server1:9001,dummy.server2:9002"
         networks:
             - glbtesting
         ports:
@@ -24,8 +24,8 @@ services:
             context: .
             dockerfile: Dockerfile.dummyserver
         environment:
-            - DUMMY_PORT=9001
-            - DUMMY_MESSAGE="Hi there from server1"
+            - PORT=9001
+            - MESSAGE="Hi there from server1"
         networks:
             - glbtesting
 
@@ -35,8 +35,8 @@ services:
             context: .
             dockerfile: Dockerfile.dummyserver
         environment:
-            - DUMMY_PORT=9002
-            - DUMMY_MESSAGE="Hi there from server2"
+            - PORT=9002
+            - MESSAGE="Hi there from server2"
         networks:
             - glbtesting
 

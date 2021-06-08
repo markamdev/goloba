@@ -1,20 +1,22 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
+
+	"github.com/namsral/flag"
 
 	"github.com/markamdev/goloba/pkg/balancer"
 )
 
-const (
-	defLogFile     = "goloba.log"
-	defConfFile    = "goloba.conf"
-	stdOutPath     = "/dev/stdout"
-	currentVersion = "0.5"
+var (
+	loggingFile = flag.String("log-file", "", "Output file for logs")
+	help        = flag.Bool("h", false, "Print help screen")
+	port        = flag.Int("port", 8060, "GoLoBa listening port")
+	servers     = flag.String("targets", "", "List of comma separated target servers")
 )
 
 var blnc *balancer.Balancer
@@ -22,30 +24,23 @@ var blnc *balancer.Balancer
 func main() {
 	fmt.Println("GoLoBa - simple Go Load Balancer (for TCP traffic) v.", currentVersion)
 
-	// separate option for "help" flag
-	var help bool
-	var confFileName string
-	var logFileName string
-	var logStdOut bool
-	// read options
-	flag.StringVar(&confFileName, "f", defConfFile, "Path to configuration file")
-	flag.BoolVar(&help, "h", false, "Print help message")
-	flag.StringVar(&logFileName, "l", defLogFile, "Output file for application logs")
-	flag.BoolVar(&logStdOut, "log-stdout", false, "Print logs on standard output instead of file")
 	flag.Parse()
 
-	if logStdOut {
-		logFileName = stdOutPath
+	if loggingFile == nil {
+		loggingFile = new(string)
+	}
+	if len(*loggingFile) == 0 {
+		*loggingFile = stdOutPath
 	}
 
 	// if requested print help and exit
-	if help {
+	if *help {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
 	// open (or create if not exists) output file for logs
-	logFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	logFile, err := os.OpenFile(*loggingFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		pe, ok := err.(*os.PathError)
 		if ok {
@@ -63,15 +58,12 @@ func main() {
 	log.SetFlags(log.LstdFlags)
 	log.Println("Starting GoLoBa ...")
 
-	// load config from file
-	cfg, err := loadConfig(confFileName)
-	if err != nil {
-		fatalAtStart("Failed to load config: ", err)
-	}
-
 	// prepare balancer
 	blnc = balancer.New()
-	err = blnc.Init(balancer.Configuration{Port: cfg.Port, Servers: cfg.Servers})
+	err = blnc.Init(balancer.Configuration{
+		Port:    uint(*port),
+		Servers: strings.Split(strings.Trim(*servers, "\""), ","),
+	})
 	if err != nil {
 		fatalAtStart("Failed to init balancer: ", err)
 	}
@@ -108,7 +100,7 @@ func startSignalListener() {
 	signal.Notify(sch, os.Interrupt)
 
 	// just wait for signal - no need to save it
-	_ = <-sch
+	<-sch
 	log.Println("Interrupt signal received - preparing to exit")
 	blnc.Stop()
 }

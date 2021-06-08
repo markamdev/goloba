@@ -13,6 +13,6 @@ COPY --from=builder /temp/build/goloba .
 
 EXPOSE 8000
 
-ENV GOLOBA_PORT=8000 GOLOBA_TARGETS="dummy1:9001;dummy2:9002"
+ENV PORT=8000 TARGETS="dummy1:9001,dummy2:9002"
 
-CMD [ "/usr/bin/goloba","-log-stdout" ]
+CMD [ "/usr/bin/goloba" ]
