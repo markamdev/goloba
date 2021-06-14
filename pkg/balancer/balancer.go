@@ -59,11 +59,11 @@ func (b *Balancer) Init(cfg Configuration) error {
 	}
 
 	if len(cfg.Servers) == 0 {
-		return errors.New("At least one server needed")
+		return errors.New("at least one server needed")
 	}
 
 	if cfg.Port == 0 {
-		return errors.New("Invalid listening port number")
+		return errors.New("invalid listening port number")
 	}
 
 	b.servers = cfg.Servers
@@ -122,7 +122,7 @@ func (b *Balancer) GetDestinationForSource(source string) (string, error) {
 	// temporary use 'round robin' algorithm for destination selection
 	dest, err := b.getDestination()
 	if err != nil {
-		return "", errors.New("Internal Balancer error")
+		return "", errors.New("internal Balancer error")
 	}
 
 	return dest, nil

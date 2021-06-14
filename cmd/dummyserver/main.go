@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/markamdev/goloba/pkg/utils"
 	"github.com/namsral/flag"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -14,15 +16,16 @@ var (
 )
 
 func main() {
-	fmt.Println("Starting dummy HTTP test server for GoLoBa")
+	utils.SetupLogger()
+	logrus.Debugln("Starting dummy HTTP test server for GoLoBa")
 	flag.Parse()
 
-	fmt.Println("... listening on port: ", *port)
-	fmt.Println("... welcome message: ", *message)
+	logrus.Debugln("... listening on port: ", *port)
+	logrus.Debugln("... welcome message: ", *message)
 
 	http.HandleFunc("/", dummyHandler)
 	status := http.ListenAndServe(":"+strconv.Itoa(*port), nil)
-	fmt.Println("Server launching status: ", status)
+	logrus.Debugln("Server launching status: ", status)
 }
 
 func dummyHandler(w http.ResponseWriter, r *http.Request) {

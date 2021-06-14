@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
 
 	"github.com/namsral/flag"
+	"github.com/sirupsen/logrus"
 
 	"github.com/markamdev/goloba/pkg/balancer"
+	"github.com/markamdev/goloba/pkg/utils"
 )
 
 var (
@@ -22,7 +23,8 @@ var (
 var blnc *balancer.Balancer
 
 func main() {
-	fmt.Println("GoLoBa - simple Go Load Balancer (for TCP traffic) v.", currentVersion)
+	utils.SetupLogger()
+	logrus.Debugln("GoLoBa - simple Go Load Balancer (for TCP traffic) v.", currentVersion)
 
 	flag.Parse()
 
@@ -52,12 +54,6 @@ func main() {
 	}
 	defer logFile.Close()
 
-	// configure logging utility
-	log.SetOutput(logFile)
-	log.SetPrefix("[GoLoBa] ")
-	log.SetFlags(log.LstdFlags)
-	log.Println("Starting GoLoBa ...")
-
 	// prepare balancer
 	blnc = balancer.New()
 	err = blnc.Init(balancer.Configuration{
@@ -80,7 +76,7 @@ func main() {
 	// wait till balancer finish working
 	blnc.Wait()
 
-	log.Println("Closing GoLoBa")
+	logrus.Debug("Closing GoLoBa")
 }
 
 func fatalAtStart(msg string, er error) {
@@ -88,19 +84,19 @@ func fatalAtStart(msg string, er error) {
 	fmt.Println("Fatal error occured - see logs for details")
 	// log error and exit
 	if er != nil {
-		log.Fatalln(msg, er.Error())
+		logrus.Fatalln(msg, er.Error())
 	} else {
-		log.Fatalln(msg)
+		logrus.Fatalln(msg)
 	}
 }
 
 func startSignalListener() {
-	log.Println("Starting signal listener")
+	logrus.Debug("Starting signal listener")
 	sch := make(chan os.Signal, 1)
 	signal.Notify(sch, os.Interrupt)
 
 	// just wait for signal - no need to save it
 	<-sch
-	log.Println("Interrupt signal received - preparing to exit")
+	logrus.Debugln("Interrupt signal received - preparing to exit")
 	blnc.Stop()
 }

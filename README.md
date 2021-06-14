@@ -57,7 +57,6 @@ Currently **goloba** accepts configuration file in *json* format. Sample file co
 
 Accepted command line parameters and related environment variable:
 
-
 | Flag | Env var | Param | Description |
 |------|---------|-------|-------------|
 | port | PORT | \<port\> | Listening port number (9000 by default) |

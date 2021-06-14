@@ -3,11 +3,12 @@ package balancer
 import (
 	"context"
 	"errors"
-	"log"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -18,16 +19,16 @@ func (b *Balancer) startListener() {
 	defer b.locker.Done()
 
 	// start launching connection listener
-	log.Print("Starting connection listener on port: ", b.port)
+	logrus.Debugln("Starting connection listener on port: ", b.port)
 	for _, serv := range b.servers {
-		log.Println("... adding server: ", serv)
+		logrus.Debugln("... adding server: ", serv)
 	}
 
 	listenAddress := ":" + strconv.Itoa(int(b.port))
 
 	ln, err := net.Listen("tcp", listenAddress)
 	if err != nil {
-		log.Fatalln("Failed to open listening socket: ", err.Error())
+		logrus.Fatalln("Failed to open listening socket: ", err.Error())
 	}
 	// save listener to context
 	b.listener = ln
@@ -41,7 +42,7 @@ func (b *Balancer) startListener() {
 			if err == nil {
 				chn <- cn
 			} else {
-				log.Println("Connection accepting error")
+				logrus.Debugln("Connection accepting error")
 				return
 			}
 		}
@@ -50,10 +51,10 @@ func (b *Balancer) startListener() {
 	for {
 		select {
 		case conn := <-acceptChan:
-			log.Println("Connection accepted")
+			logrus.Debugln("Connection accepted")
 			b.handleConnection(conn)
 		case <-cancelChan:
-			log.Println("Cancellation received")
+			logrus.Debugln("Cancellation received")
 			b.listener.Close()
 			return
 		}
@@ -64,14 +65,14 @@ func (b *Balancer) startListener() {
 func (b *Balancer) handleConnection(incoming net.Conn) {
 	// get IP address only (WARNING: it's not working properly for IPv6 connections, even on localhost)
 	source := strings.Split(incoming.RemoteAddr().String(), ":")[0]
-	log.Println("Accepted connection from: ", source)
+	logrus.Debugln("Accepted connection from: ", source)
 
 	// fetch destination (redirection) address
 	dest, err := b.GetDestinationForSource(source)
 	if err == nil {
-		log.Println("... redirecting to: ", dest)
+		logrus.Debugln("... redirecting to: ", dest)
 	} else {
-		log.Println("... failed to get redirect address - exiting with error:", err)
+		logrus.Debugln("... failed to get redirect address - exiting with error:", err)
 		incoming.Close()
 		return
 	}
@@ -80,7 +81,7 @@ func (b *Balancer) handleConnection(incoming net.Conn) {
 	tempdialer := net.Dialer{}
 	redirect, err := tempdialer.Dial("tcp", dest)
 	if err != nil {
-		log.Println("Failed to connect to redirect address (", dest, ") - exiting with error:", err)
+		logrus.Debugln("Failed to connect to redirect address (", dest, ") - exiting with error:", err)
 		incoming.Close()
 		return
 	}
@@ -123,7 +124,7 @@ func (b *Balancer) forwardRoutine(ctx context.Context, in, out net.Conn) {
 		}
 		out.Write(buffer[:n])
 	}
-	log.Println("Forwarding routine closed by context")
+	logrus.Debugln("Forwarding routine closed by context")
 	in.Close()
 }
 
@@ -152,7 +153,7 @@ func (b *Balancer) notifyOpened(source, destination string) error {
 	if dest, ok := b.mapping[source]; ok {
 		if dest.destination != destination {
 			// already saved destination is other than given one
-			return errors.New("Notifying different destination than already saved")
+			return errors.New("notifying different destination than already saved")
 		}
 		dest.counter++
 		b.mapping[source] = dest
@@ -177,11 +178,11 @@ func (b *Balancer) notifyClosed(source, destination string) error {
 	dest, ok := b.mapping[source]
 	// if no mapping found - some error occured
 	if !ok {
-		return errors.New("Closing not mapped connection")
+		return errors.New("closing not mapped connection")
 	}
 	if dest.destination != destination {
 		// already saved destination is other than given one
-		return errors.New("Closing connection with destination different than already saved")
+		return errors.New("closing connection with destination different than already saved")
 	}
 
 	dest.counter--
