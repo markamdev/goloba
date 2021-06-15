@@ -5,10 +5,11 @@ services:
         image: markamdev/goloba
         build:
             context: .
-            dockerfile: Dockerfile.goloba
+            dockerfile: Dockerfile
         environment:
             - PORT=8000
             - TARGETS="dummy.server1:9001,dummy.server2:9002"
+        command: /usr/bin/goloba
         networks:
             - glbtesting
         ports:
@@ -19,13 +20,14 @@ services:
 
 
     dummy.server1:
-        image: markamdev/dummyserver
+        image: markamdev/goloba
         build:
             context: .
-            dockerfile: Dockerfile.dummyserver
+            dockerfile: Dockerfile
         environment:
             - PORT=9001
             - MESSAGE="Hi there from server1"
+        command: /usr/bin/dummyserver
         networks:
             - glbtesting
 
@@ -33,10 +35,11 @@ services:
         image: markamdev/dummyserver
         build:
             context: .
-            dockerfile: Dockerfile.dummyserver
+            dockerfile: Dockerfile
         environment:
             - PORT=9002
             - MESSAGE="Hi there from server2"
+        command: /usr/bin/dummyserver
         networks:
             - glbtesting
 
