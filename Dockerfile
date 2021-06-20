@@ -21,3 +21,5 @@ COPY --from=builder /temp/build/dummyserver .
 EXPOSE 8060
 # Listening port for dummyserver
 EXPOSE 8070
+
+ENTRYPOINT [ "/usr/bin/goloba" ]

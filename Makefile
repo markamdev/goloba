@@ -36,14 +36,13 @@ test: goloba dummyserver
 
 docker:
 	@echo -- DOCKER --
-	@docker build -t markamdev/goloba -f Dockerfile.goloba .
-	@docker build -t markamdev/dummyserver -f Dockerfile.dummyserver .
+	@docker build -t markamdev/goloba -f Dockerfile .
 
 # Targets for publishing images to Docker Hub
 # docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 # docker buildx rm builder
 # docker buildx create --name builder --driver docker-container --use
-# docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t markamdev/dummyserver:latest -t markamdev/dummyserver:0.5 --push -f Dockerfile.dummyserver .
+# docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t markamdev/goloba:latest -t markamdev/goloba:0.5 --push -f Dockerfile .
 
 .publish_goloba:
 	$(eval G_VER := $(shell cat dockerhub/goloba.VERSION | head -n 1))
@@ -52,16 +51,5 @@ docker:
 	@echo "Run it using: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
 	@docker buildx create --name golobabuilder --driver docker-container --use
 	@docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 \
-		-t markamdev/goloba:latest -t markamdev/goloba:$(G_VER) --push -f Dockerfile.goloba .
+		-t markamdev/goloba:latest -t markamdev/goloba:$(G_VER) --push -f Dockerfile .
 	@docker buildx rm golobabuilder
-
-
-.publish_dummyserver:
-	$(eval DS_VER := $(shell cat dockerhub/dummyserver.VERSION | head -n 1))
-	@echo -- DOCKERHUB PUBLISHING : DUMMYSERVER v $(DS_VER) --
-	@echo "INFO: multiarch build requires multiarch/qemu-user-static"
-	@echo "Run it using: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
-	@docker buildx create --name dummybuilder --driver docker-container --use
-	@docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 \
-		-t markamdev/dummyserver:latest -t markamdev/dummyserver:$(DS_VER) --push -f Dockerfile.dummyserver .
-	@docker buildx rm dummybuilder
