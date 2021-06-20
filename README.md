@@ -32,24 +32,10 @@ When launching **goloba** following commandline params and system environment va
 
 | Flag | Env var | Param | Description |
 |------|---------|-------|-------------|
-| TODO | TODO | TODO | TODO |
-
-### goloba.conf example
-
-**! OBSOLETE !**
-
-Currently **goloba** accepts configuration file in *json* format. Sample file content is shown below:
-
-```json
-{
-    "port" : 7080,
-    "servers" : [ "localhost:8080" , "localhost:9000"]
-}
-```
-
-*port* parameter in sample above defines **goloba** listening port as a single integer value.
-
-*servers* is an array of string containing supported (*balanced*) servers in form *address:port*.
+| port | PORT | \<port\> | Number of GoLoBa listening port |
+| servers | SERVERS | \<server_list\> | Comma separated list of *server:port* pairs for each server|
+| logging-file | LOGGING_FILE | \<file_path\> | Path to output file for logs|
+| help | - | - | Request to print help message with params description |
 
 ### dummyserver params  and environment variables
 
@@ -64,9 +50,9 @@ Accepted command line parameters and related environment variable:
 
 ## Docker container and docker-compose testbench
 
-As this repository contains two applications there are also two docker files and two Docker images that can be built. Dockerfiles for **goloba** and **dummyserver** are named *Dockerfile.goloba* and *Dockerfile.dummyserver* respectively.
+Although this repository contains two applications there is only one docker file and one Docker image that can be built. By default image launches **goloba** binary but it's also possible to launch **dummyserver** by specifying command as `/usr/bin/dummyserver`.
 
-Both images can be build using single `make docker` command (if Docker is installed on the machine). Output images will be *markamdev/goloba* and *markamdev/dummyserver*.
+Docker image build can be launched manually using *docker* tool or by running `make docker` command (of course Docker has to be installed on the machine). Output image will be *markamdev/goloba*.
 
 There's also simple testbench prepared to be launched in Docker Compose tool. Testbench is described in *docker-compose.yml* and contains two **dummyserver** instances accessible through one **goloba**. After launching testbench by `docker-compose up -d` environment can be accessed using local port *8080*.
 
