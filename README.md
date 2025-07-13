@@ -2,6 +2,8 @@
 
 Implementation of a simple load balancer for TCP connections.
 
+**NOTE** Version *0.7* has a lot of changes including *.yaml* config file support. Please check [Usage](#usage) section before running.
+
 ## Introduction
 
 **goloba** is a simple example of *Layer 4 balancer* working in *proxy mode*. Each connection established with **goloba** process is forwarded to one of configured endpoints. Endpoint selection is made internally based on implemented balancing algorithm (currently it's only *round robin*).

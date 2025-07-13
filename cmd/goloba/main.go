@@ -1,73 +1,55 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 
 	"github.com/namsral/flag"
-	"github.com/sirupsen/logrus"
 
+	"github.com/markamdev/goloba/internal/version"
 	"github.com/markamdev/goloba/pkg/balancer"
-	"github.com/markamdev/goloba/pkg/utils"
+	"github.com/markamdev/goloba/pkg/logger"
 )
 
 var (
-	loggingFile = flag.String("log-file", "", "Output file for logs")
-	help        = flag.Bool("h", false, "Print help screen")
-	port        = flag.Int("port", 8060, "GoLoBa listening port")
-	servers     = flag.String("targets", "", "List of comma separated target servers")
+	// logLevel    = flag.String("log-level", "info", "Log level: debug, info, warn, error, fatal")
+	// loggingFile = flag.String("log-file", "", "Output file for logs")
+	help    = flag.Bool("h", false, "Print help screen")
+	port    = flag.Int("port", 8060, "GoLoBa listening port")
+	servers = flag.String("targets", "", "List of comma separated target servers")
+	// configFile  = flag.String("config", "", "Configuration file")
 )
 
 var blnc *balancer.Balancer
 
 func main() {
-	utils.SetupLogger()
-	logrus.Debugln("GoLoBa - simple Go Load Balancer (for TCP traffic) v.", currentVersion)
+	logger.SetLevel(logger.GlbDebug)
+	logger.Info("goloba - simple TCP load balancer", "version", version.Version)
 
 	flag.Parse()
 
-	if loggingFile == nil {
-		loggingFile = new(string)
-	}
-	if len(*loggingFile) == 0 {
-		*loggingFile = stdOutPath
-	}
-
 	// if requested print help and exit
 	if *help {
+		// TODO add help message here
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
-	// open (or create if not exists) output file for logs
-	logFile, err := os.OpenFile(*loggingFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		pe, ok := err.(*os.PathError)
-		if ok {
-			fmt.Println("Failed to init logger output file: ", pe.Unwrap().Error(), " -  Exiting ...")
-		} else {
-			fmt.Println("Failed to init logger output file: ", err.Error(), " - Exiting")
-		}
-		os.Exit(1)
-	}
-	defer logFile.Close()
-
 	// prepare balancer
 	blnc = balancer.New()
-	err = blnc.Init(balancer.Configuration{
+	err := blnc.Init(balancer.Configuration{
 		Port:    uint(*port),
 		Servers: strings.Split(strings.Trim(*servers, "\""), ","),
 	})
 	if err != nil {
-		fatalAtStart("Failed to init balancer: ", err)
+		logger.Fatal("failed to init balancer: ", "error", err.Error())
 	}
 
 	// start balancer
 	err = blnc.Start()
 	if err != nil {
-		fatalAtStart("Failed to start balancer: ", err)
+		logger.Fatal("failed to start balancer: ", "error", err.Error())
 	}
 
 	// launch signal listener without waiting group incrementation
@@ -76,27 +58,16 @@ func main() {
 	// wait till balancer finish working
 	blnc.Wait()
 
-	logrus.Debug("Closing GoLoBa")
-}
-
-func fatalAtStart(msg string, er error) {
-	// leave message about fatal error on console
-	fmt.Println("Fatal error occured - see logs for details")
-	// log error and exit
-	if er != nil {
-		logrus.Fatalln(msg, er.Error())
-	} else {
-		logrus.Fatalln(msg)
-	}
+	logger.Debug("Closing GoLoBa")
 }
 
 func startSignalListener() {
-	logrus.Debug("Starting signal listener")
+	logger.Debug("starting signal listener")
 	sch := make(chan os.Signal, 1)
 	signal.Notify(sch, os.Interrupt)
 
 	// just wait for signal - no need to save it
 	<-sch
-	logrus.Debugln("Interrupt signal received - preparing to exit")
+	logger.Debug("interrupt signal received - preparing to exit")
 	blnc.Stop()
 }

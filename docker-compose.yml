@@ -18,9 +18,8 @@ services:
             - dummy.server1
             - dummy.server2
 
-
     dummy.server1:
-        image: markamdev/goloba
+        image: markamdev/dummyserver
         build:
             context: .
             dockerfile: Dockerfile
