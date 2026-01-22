@@ -33,7 +33,10 @@ func LoadConfig() (Config, error) {
 	// TODO in future replace '--help' flag with 'help' command
 	pflag.Bool("help", false, "Print help screen")
 	pflag.Parse()
-	viper.BindPFlags(pflag.CommandLine)
+	err := viper.BindPFlags(pflag.CommandLine)
+	if err != nil {
+		return currentConfig, fmt.Errorf("error binding flags: %v", err)
+	}
 
 	// file-based configuration loading
 	configFile := viper.GetString("config-file")
@@ -47,7 +50,7 @@ func LoadConfig() (Config, error) {
 
 	}
 
-	err := viper.Unmarshal(&currentConfig)
+	err = viper.Unmarshal(&currentConfig)
 	if err != nil {
 		return currentConfig, fmt.Errorf("unable to decode into struct: %v", err)
 	}
