@@ -1,18 +1,27 @@
 package logger
 
 import (
-	"context"
 	"log/slog"
+	"os"
 )
 
-var defaultLogger GLBLogger = createBaseLogger()
+func NewBasicLogger() GLBLogger {
 
-type basicLogger struct {
-	logger *slog.Logger
+	lvl := &slog.LevelVar{}
+	lvl.Set(slog.LevelInfo)
+	opts := &slog.HandlerOptions{
+		AddSource: false, // TODO consider making this configurable
+		Level:     lvl,
+	}
+	return &basicLogger{
+		logger:   slog.New(slog.NewTextHandler(os.Stdout, opts)),
+		logLevel: lvl,
+	}
 }
 
-func createBaseLogger() GLBLogger {
-	return &basicLogger{logger: slog.Default()}
+type basicLogger struct {
+	logger   *slog.Logger
+	logLevel *slog.LevelVar
 }
 
 func (b *basicLogger) Info(msg string, args ...any) {
@@ -33,11 +42,11 @@ func (b *basicLogger) Debug(msg string, args ...any) {
 
 func (b *basicLogger) Fatal(msg string, args ...any) {
 	b.logger.Error(msg, args...)
-	panic(msg)
+	os.Exit(1)
 }
 
-func (b *basicLogger) SetLevel(level GLBLogLevel) {
-	b.logger.Enabled(context.Background(), glbLevelToSlogLevel(level))
+func (b *basicLogger) SetLevel(level Level) {
+	b.logLevel.Set(glbLevelToSlogLevel(level))
 }
 
 func (b *basicLogger) WithParam(key string, value any) GLBLogger {
@@ -45,7 +54,7 @@ func (b *basicLogger) WithParam(key string, value any) GLBLogger {
 	return &basicLogger{logger: b.logger.With(key, value)}
 }
 
-func glbLevelToSlogLevel(level GLBLogLevel) slog.Level {
+func glbLevelToSlogLevel(level Level) slog.Level {
 	switch level {
 	case GlbDebug:
 		return slog.LevelDebug
@@ -58,6 +67,6 @@ func glbLevelToSlogLevel(level GLBLogLevel) slog.Level {
 	case GlbFatal:
 		return slog.LevelError // FATAL is treated as ERROR in slog
 	default:
-		return slog.LevelInfo // Default to INFO if unknown level
+		return slog.LevelDebug // Default to INFO if unknown level
 	}
 }

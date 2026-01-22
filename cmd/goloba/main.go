@@ -6,6 +6,7 @@ import (
 	"os/signal"
 
 	"github.com/markamdev/goloba/internal/appconfig"
+	"github.com/markamdev/goloba/pkg/balancer"
 	"github.com/markamdev/goloba/pkg/logger"
 	"github.com/spf13/pflag"
 )
@@ -14,7 +15,8 @@ func main() {
 	// load application configuration
 	cfg, err := appconfig.LoadConfig()
 	if err != nil {
-		panic(fmt.Sprintf("failed to load configuration: %s", err.Error()))
+		fmt.Fprintf(os.Stderr, "failed to load configuration: %s\n", err.Error())
+		os.Exit(1)
 	}
 
 	if cfg.Help {
@@ -22,22 +24,35 @@ func main() {
 		return
 	}
 
-	// TODO initialize logger here
+	logger.SetDefaultLogger(logger.NewBasicLogger())
+	logger.SetLevel(logger.ParseLogLevel(cfg.LogLevel))
 
-	if cfg.LogLevel == "debug" {
-		fmt.Printf("application config: %+v\n", cfg)
-	}
+	logger.Debug("creating new load balancer", "config", cfg)
+	// initialize/create load balancer
+	bl := balancer.NewLoadBalancer(appconfig.AppConfigToBalancerConfig(cfg))
 
 	// launch signal listener without waiting group incrementation
-	go startSignalListener()
+	go startSignalListener(func() {
+		err := bl.Stop()
+		if err != nil {
+			logger.Error("failed to stop load balancer", "error", err.Error())
+		}
+	})
+
+	err = bl.Start()
+	if err != nil {
+		logger.Fatal("failed to start load balancer", "error", err.Error())
+	}
 }
 
-func startSignalListener() {
+func startSignalListener(stopRoutine func()) {
+	logger.Debug("starting signal listener for interrupt signals")
 	sch := make(chan os.Signal, 1)
 	signal.Notify(sch, os.Interrupt)
 
 	// just wait for signal - no need to save it
 	<-sch
 	logger.Debug("interrupt signal received - preparing to exit")
-	// TODO: add graceful shutdown logic here
+
+	stopRoutine()
 }

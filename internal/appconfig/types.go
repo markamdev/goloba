@@ -1,10 +1,10 @@
 package appconfig
 
 type Config struct {
-	ListenPort uint     `mapstructure:"listen_port"`
+	ListenPort uint     `mapstructure:"listen-port"`
 	Targets    []string `mapstructure:"targets"`
 	Algorithm  string   `mapstructure:"algorithm"`
-	LogLevel   string   `mapstructure:"log_level"`
-	ConfigFile string   `mapstructure:"config_file"`
+	LogLevel   string   `mapstructure:"log-level"`
+	ConfigFile string   `mapstructure:"config-file"`
 	Help       bool     `mapstructure:"help"`
 }

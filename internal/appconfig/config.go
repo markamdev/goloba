@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/markamdev/goloba/pkg/balancer"
+	"github.com/markamdev/goloba/pkg/logger"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -13,10 +14,10 @@ func LoadConfig() (Config, error) {
 	var currentConfig Config
 
 	// default configuration values
-	viper.SetDefault("listen_port", 8060)
+	viper.SetDefault("listen-port", 8060)
 	viper.SetDefault("targets", []string{})
 	viper.SetDefault("algorithm", "round_robin")
-	viper.SetDefault("log_level", "info")
+	viper.SetDefault("log-level", "info")
 
 	// environment variables loading
 	viper.SetEnvPrefix("GOLOBA")
@@ -51,6 +52,13 @@ func LoadConfig() (Config, error) {
 		return currentConfig, fmt.Errorf("unable to decode into struct: %v", err)
 	}
 
+	switch currentConfig.LogLevel {
+	case "debug", "info", "warn", "error", "fatal":
+		// valid log level
+	default:
+		return currentConfig, fmt.Errorf("invalid log level: %s", currentConfig.LogLevel)
+	}
+
 	return currentConfig, nil
 }
 
@@ -59,6 +67,6 @@ func AppConfigToBalancerConfig(appCfg Config) balancer.Config {
 		Port:      appCfg.ListenPort,
 		Servers:   appCfg.Targets,
 		Algorithm: appCfg.Algorithm,
-		LogLevel:  appCfg.LogLevel,
+		LogLevel:  string(logger.ParseLogLevel(appCfg.LogLevel)),
 	}
 }
